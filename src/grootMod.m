@@ -8,8 +8,8 @@
 %       Related:            xfig
 %
 %   VERSION
-%       v1.3 / 27.06.22 / V.Yotov   added 'hold on' equivalent, updated code
-%       v1.2 / 26.06.22 / V.Yotov   checks required vs. current state to avoid recomputation
+%       v1.3 / 27.06.22 / --        added 'hold on' equivalent, updated code
+%       v1.2 / 26.06.22 / --        checks required vs. current state to avoid recomputation
 %       v1.1 / 13.02.22 / V.Yotov
 %  ------------------------------------------------------------------------------------------------
 
@@ -39,23 +39,23 @@ function grootMod(flag)
     end
 
 % Change settings if required
-if lastState~=reqState
-
-    s = get(groot,'factory');                                                           % Property strucure
-    f = string(fieldnames(s));                                                          % String array of field names
+    if lastState~=reqState
     
-    for k = 1:size(rep,1)                                                               % Loop over repl rows
-        str = f(isSubstring(rep(k,1),f));
-        for i = 1:numel(str)                                                            % Loop over property fields
-            if getfield(s,str(i)) == rep(k,2)
-                strtmp = strrep(str(i), 'factory', 'default');
-                set(groot, strtmp, rep(k,2+reqState));                                  % Replace if old value matches target, 2 = reset, 3 = mod
+        s = get(groot,'factory');                                                       % Property strucure
+        f = string(fieldnames(s));                                                      % String array of field names
+        
+        for k = 1:size(rep,1)                                                           % Loop over repl rows
+            str = f(isSubstring(rep(k,1),f));
+            for i = 1:numel(str)                                                        % Loop over property fields
+                if getfield(s,str(i)) == rep(k,2)
+                    strtmp = strrep(str(i), 'factory', 'default');
+                    set(groot, strtmp, rep(k,2+reqState));                              % Replace if old value matches target, 2 = reset, 3 = mod
+                end
             end
         end
+    
+        lastState = reqState;                                                           % update current groot setting state flag 
     end
-
-    lastState = reqState;                                                               % update current groot setting state flag 
-end
 
 
 %  ------------------------------------------------------------------------------------------------

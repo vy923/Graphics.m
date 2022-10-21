@@ -33,6 +33,7 @@ EXT.PACKAGES
 
 
 function atikz = tikzStyleAxes(ax)
+
 if ~exist('ax','var') || isempty(ax)
     ax = gca;
 end

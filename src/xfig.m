@@ -4,7 +4,7 @@
 %
 %       Produces an empty plot with axis and figure handles 'ax', 'fig'
 %
-%       See also:       grootMod, mustBeStartString, v2string
+%       See also:       grootMod, v2string, mustBeStartString, mustBeMemberSCI
 %       External:       v2struct
 %
 %   INPUTS
@@ -26,6 +26,7 @@
 %           - default: replace/generate new
 %           - option 1: update with entirely new settings like in new call
 %           - option 2: update only the settings in the call -> persistent copy of opts
+%       - define presets, e.g. for matlab -> .svg -> .docx 
 %
 %   VERSION
 %       v1.1 / 29.06.22 / V.Yotov
@@ -35,13 +36,13 @@ function [ax,fig] = xfig(opts)
 
 arguments
     opts.n {mustBeScalarOrEmpty,mustBeInteger} = []
-    opts.b {mustBeMemberLoc(opts.b,["","0","off","1","on"])} = 'off'
-    opts.h {mustBeMemberLoc(opts.h,["","0","off","1","on"])} = 'on'
-    opts.x {mustBeMemberLoc(opts.x,["","0","lin","1","ln","log"])} = 'lin'
-    opts.y {mustBeMemberLoc(opts.y,["","0","lin","1","ln","log"])} = 'lin'
-    opts.xy {mustBeMemberLoc(opts.xy,["","0","lin","1","ln","log"])} = []
-    opts.g {mustBeMemberLoc(opts.g,["","0","off","1","on","xy","x","y","2","b","both"])} = 'off'
-    opts.gm {mustBeMemberLoc(opts.gm,["","0","off","1","on","xy","x","y"])} = 'off'
+    opts.b {mustBeMemberSCI(opts.b,["","0","off","1","on"])} = 'off'
+    opts.h {mustBeMemberSCI(opts.h,["","0","off","1","on"])} = 'on'
+    opts.x {mustBeMemberSCI(opts.x,["","0","lin","1","ln","log"])} = 'lin'
+    opts.y {mustBeMemberSCI(opts.y,["","0","lin","1","ln","log"])} = 'lin'
+    opts.xy {mustBeMemberSCI(opts.xy,["","0","lin","1","ln","log"])} = []
+    opts.g {mustBeMemberSCI(opts.g,["","0","off","1","on","xy","x","y","2","b","both"])} = 'off'
+    opts.gm {mustBeMemberSCI(opts.gm,["","0","off","1","on","xy","x","y"])} = 'off'
     opts.fs {mustBeScalarOrEmpty,mustBePositive} = []
     opts.grootFlag {mustBeStartString(opts.grootFlag,'reset')} = ''
 end
@@ -111,11 +112,6 @@ end
 
     set(ax,'LooseInset',get(ax,'TightInset'));
 
-
-%  ------------------------------------------------------------------------------------------------
-
-function mustBeMemberLoc(A,B)
-    mustBeMember(lower(string(A)),lower(string(B)))
 
 %  ------------------------------------------------------------------------------------------------
 

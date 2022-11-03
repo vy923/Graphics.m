@@ -30,7 +30,7 @@ end
 if isempty(rep)
     rep = [ "FontName"                  "Helvetica"             "Times New Roman"
             "FontName"                  "MS Sans Serif"         "Monospaced"
-            "Interpreter"               "tex"                   "tex" 
+            "Interpreter"               "tex"                   "latex" 
             "TiledlayoutPadding"        "loose"                 "none"
             "TiledlayoutTileSpacing"    "loose"                 "tight"
             "TiledlayoutTileIndexing"   "rowmajor"              "columnmajor"

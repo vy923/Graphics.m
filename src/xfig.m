@@ -23,9 +23,10 @@ function [ax,fig] = xfig(opts)
 %       - axis auto tight equivalent for x, tickaligned for y
 %       - tex option for all text?
 %       - expand to 3D
-%       - call with figure
+%       + call with figure
 %       - clear axes option with default=false
 %       - define presets, e.g. for matlab -> .svg -> .docx 
+%       + check if ax is figure containing tiledlayout
 %       + call with ax=figure, subfigure array
 %
 %   VERSION
@@ -100,31 +101,14 @@ end
 
 % Get/create axes for the figure
     switch class(ax)
-        case 'matlab.graphics.axis.Axes'                                                    % existing axes, do nothing
-        case 'matlab.ui.Figure'                                                             % existing figure or subfigure
-            if isempty(ax.Children) 
-                ax = axes(fig);                                                             % [1 x 1] new axes
-            else 
-                ax = ax.Children;                                                           % [vec] existing axes of nonempty figure
-            end
+        case 'matlab.graphics.axis.Axes'                                                    % existing axes array, do nothing
+        case 'matlab.ui.Figure'                                                             % variable ax contains a figure / subfigure / tiledlayout in figure
+            ax = getAxisArray([],ax,'figure');
         case 'matlab.graphics.layout.TiledChartLayout'
-            t = ax;
-            g = t.GridSize;
-            if ~isempty(t.Children)
-                ax = t.Children;                                                            % only apply formatting to existing tiles
-            else 
-                ax = arrayfun(@(i)nexttile(t,i),1:prod(g));                                 % initialise with same size as the tiledlayout grid
-            end
-            if prod(g) == numel(findall(t.Children,'type','Axes'))
-                ax = reshape(ax,g);
-            end
+            ax = getAxisArray(ax,[],'tiled');
         case 'double'
-            if isempty(fig.Children) 
-                ax = axes(fig);                                                             % create axes for the figure
-            else 
-                ax = fig.Children;                                                          % get existing axes of nonempty figure
-            end
-        otherwise, error('xfig: ax must be Axes, TiledChartLayout or empty') 
+            ax = getAxisArray([],fig,'figure');
+        otherwise, error('xfig: ax must be Axes, Figure, TiledChartLayout or empty') 
     end
 
 % Assign properties
@@ -164,6 +148,32 @@ function parseMultiChoice(arr,varargin)
     
 %  ------------------------------------------------------------------------------------------------
 
+function ax = getAxisArray(ax,fig,type)
+
+    switch type
+        case 'tiled'
+            t = ax; g = t.GridSize;
+            if ~isempty(t.Children)
+                ax = t.Children;                                                            % only apply formatting to existing tiles
+            else 
+                ax = arrayfun(@(i)nexttile(t,i),1:prod(g));                                 % initialise with same size as the tiledlayout grid
+            end
+            if prod(g) == numel(findall(t.Children,'type','Axes'))
+                ax = reshape(ax,g);
+            end
+        case 'figure'
+            if isempty(fig.Children) 
+                ax = axes(fig);                                                             % create axes for the figure
+            elseif isa(fig.Children,'matlab.graphics.layout.TiledChartLayout') 
+                ax = getAxisArray(fig.Children,[],'tiled')                                  % recursively call as 'tiled'
+            else
+                ax = fig.Children;                                                          % get existing axes of nonempty figure
+            end
+    end
+
+
+%  ------------------------------------------------------------------------------------------------
+
 %{
 figure(1);
 t = tiledlayout(3,3);
@@ -175,11 +185,16 @@ xfig(ax=t,b=1);
 figure(2);
 g = tiledlayout(3,3);
 arrayfun(@(i)nexttile(g,i),1:(prod(g.GridSize)-1))
-[ax,fig] = xfig(ax=g,b=1)
+[ax,fig] = xfig(ax=g,b=0)
 
 figure(3);
 e = tiledlayout(3,3);
 [ax,fig] = xfig(ax=e,b=1)
+
+xfig(n=4);
+fplot({@(x)sinc(x),@(x)sinc(.7*x)},[-5,5])
+xfig(ax=gcf,g=2,b=1);
+xfig(ax=gca,g=0);
 %}
 
 

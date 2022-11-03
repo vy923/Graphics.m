@@ -1,3 +1,4 @@
+function [ax,fig] = xfig(opts)
 %  ------------------------------------------------------------------------------------------------
 %   DESCRIPTION
 %       [ax,fig] = XFIG(opts)
@@ -20,21 +21,23 @@
 %   UPDATES
 %       - clean-up inputs section
 %       - axis auto tight equivalent for x, tickaligned for y
-%       - tex opytion with grootMod fonts?
+%       - tex option for all text?
 %       - expand to 3D
+%       - call with figure
 %       - clear axes option with default=false
 %       - define presets, e.g. for matlab -> .svg -> .docx 
+%       + call with ax=figure, subfigure array
 %
 %   VERSION
-%   v1.2 / 03.11.22 / --       option ax=<axis object> updates existing axes
-%   v1.1 / 29.06.22 / V.Yotov
+%   v1.2 / 03.11.22 / --    option ax=<axis object> updates existing axes
+%   v1.1 / 29.06.22 / V.Y.
 %  ------------------------------------------------------------------------------------------------
-
-function [ax,fig] = xfig(opts)
 
 arguments
     opts.ax = []                                                                            % checked in switch at end
     opts.grootFlag = string.empty                                                           % validated in grootMod call
+    % opts.tex
+    % opts.c
     opts.n {mustBeScalarOrEmpty,mustBeInteger} = []
     opts.b {mustBeMemberSCI(opts.b,["","0","off","1","on"])} = 'off'
     opts.h {mustBeMemberSCI(opts.h,["","0","off","1","on"])} = 'on'
@@ -86,7 +89,7 @@ end
     parseMultiChoice(arrOnOff,b)
     parseMultiChoice(arrRepAdd,h)
 
-% Get/create figure
+% Get/create figure for the axes
     if ~isempty(ax)
         fig = gcf;                                                                          % existing axis object                
     elseif ~isempty(n) && n>=1 
@@ -95,9 +98,15 @@ end
         fig = figure;                                                                       % next unused number
     end
 
-% Get/create axes array, autofill tiled
+% Get/create axes for the figure
     switch class(ax)
-        case 'matlab.graphics.axis.Axes'                                                    % do nothing
+        case 'matlab.graphics.axis.Axes'                                                    % existing axes, do nothing
+        case 'matlab.ui.Figure'                                                             % existing figure or subfigure
+            if isempty(ax.Children) 
+                ax = axes(fig);                                                             % [1 x 1] new axes
+            else 
+                ax = ax.Children;                                                           % [vec] existing axes of nonempty figure
+            end
         case 'matlab.graphics.layout.TiledChartLayout'
             t = ax;
             g = t.GridSize;
@@ -118,7 +127,7 @@ end
         otherwise, error('xfig: ax must be Axes, TiledChartLayout or empty') 
     end
 
-% Set properties
+% Assign properties
     for i = 1:numel(ax)
         ax(i).Units = 'normalized';
         ax(i).FontSize = 10.0;
@@ -133,7 +142,7 @@ end
         ax(i).GridAlpha = 0.12;
         ax(i).MinorGridLineStyle = '-';
         ax(i).MinorGridAlpha = 0.05;
-        ax(i).LooseInset = ax.TightInset;
+        ax(i).LooseInset = ax(i).TightInset;
     end
 
 

@@ -8,9 +8,10 @@
 %       Related:            xfig
 %
 %   VERSION
-%       v1.3 / 27.06.22 / --        added 'hold on' equivalent, updated code
-%       v1.2 / 26.06.22 / --        checks required vs. current state to avoid recomputation
-%       v1.1 / 13.02.22 / V.Yotov
+%   v1.4 / 03.10.22 / --        tiledlayout element order row -> column major
+%   v1.3 / 27.06.22 / --        added 'hold on' equivalent, updated code
+%   v1.2 / 26.06.22 / --        checks required vs. current state to avoid recomputation
+%   v1.1 / 13.02.22 / V.Yotov
 %  ------------------------------------------------------------------------------------------------
 
 function grootMod(flag)
@@ -34,13 +35,14 @@ function grootMod(flag)
                 "Interpreter"               "tex"                   "latex" 
                 "TiledlayoutPadding"        "loose"                 "none"
                 "TiledlayoutTileSpacing"    "loose"                 "tight"
+                "TiledlayoutTileIndexing"   "rowmajor"              "columnmajor"
                 "AxesNextPlot"              "replace"               "add"
                 ]; 
     end
 
 % Change settings if required
     if lastState~=reqState
-    
+
         s = get(groot,'factory');                                                       % Property strucure
         f = string(fieldnames(s));                                                      % String array of field names
         

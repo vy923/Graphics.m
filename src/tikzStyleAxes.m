@@ -27,7 +27,7 @@ OUTPUTS
     
 EXT.PACKAGES
     'patchline' / Brett Shoelson 
-    'clearObjects' / VY function
+    'deleteStructObj' / VY function
 %}
 
 

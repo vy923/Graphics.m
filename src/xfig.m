@@ -30,10 +30,11 @@ function [ax,fig] = xfig(opts)
 %       + check if ax is figure containing tiledlayout
 %       + call with ax=figure, subfigure array
 %       - improve parsing of multi-choice inputs e.g. by decomposing strings
+%       + works automatically with 'flow'
 %
 %   VERSION
 %   v1.3 / xx.11.22 / --    3d plots [done], enhanced input handling [in progress], call w. ax=n
-%   v1.2 / 03.11.22 / --    option ax=<axis object> updates existing axes
+%   v1.2 / 03.11.22 / --    option ax=<axis object> updates existing axes [doc. in progress]
 %   v1.1 / 29.06.22 / V.Y.
 %  ------------------------------------------------------------------------------------------------
 
@@ -52,7 +53,7 @@ arguments
     opts.xyz {mustBeMemberSCI(opts.xyz,["","0","lin","1","ln","log"])} = []
     opts.g {mustBeMemberSCI(opts.g,["","0","off","1","on","xy","xyz","x","y","2","b","all"])} = 'off'
     opts.gm {mustBeMemberSCI(opts.gm,["","0","off","1","on","xy","xyz","x","y","z"])} = 'off'
-    opts.fs {mustBeScalarOrEmpty,mustBePositive} = []
+    opts.layers (1,1) {mustBeNonnegative} = 0
 end
 
 % Unpack opts & set groot state 
@@ -115,11 +116,12 @@ end
     switch class(ax)
         case 'matlab.graphics.axis.Axes'                                                    % existing axes array, do nothing
         case 'matlab.ui.Figure'                                                             % variable ax contains a figure / subfigure / tiledlayout in figure
-            ax = getAxisArray([],ax,'figure');
+            ax = getAxisArray([],ax,'figure',layers);
         case 'matlab.graphics.layout.TiledChartLayout'
-            ax = getAxisArray(ax,[],'tiled');
+            ax = getAxisArray(ax,[],'tiled',layers);
         case 'double'
-            ax = getAxisArray([],fig,'figure');
+            fig
+            ax = getAxisArray([],fig,'figure',layers);
         otherwise, error('xfig: ax must be Axes, Figure, TiledChartLayout or empty') 
     end
 
@@ -151,8 +153,7 @@ function parseMultiChoice(arr,varargin)
 
     v2string(varargin)                                                                      % convert varargin from cell to string
     sz1 = size(arr,1);
-% disp(varargin)
-% disp(arr)
+
     for i = 1:numel(varargin)                                                               % e.g. parseMultiChoice(arrLinLog,x,y,z)
         [chk,idxlin] = ismember(lower(varargin{i}),lower(arr));
         if chk
@@ -164,39 +165,41 @@ function parseMultiChoice(arr,varargin)
 
 %  ------------------------------------------------------------------------------------------------
 
-function ax = getAxisArray(ax,fig,type)
+function ax = getAxisArray(ax,fig,type,layers)
 
     switch type
         case 'tiled'
             t = ax; g = t.GridSize;
             if ~isempty(t.Children)
-                ax = getAxes(t);                                                            % only apply formatting to existing tiles
+                ax = getAxes(t,layers);                                                     % only apply formatting to existing tiles, max 'rec' nested layers
             else 
                 ax = arrayfun(@(i)nexttile(t,i),1:prod(g));                                 % initialise with same size as the tiledlayout grid
             end
-            if prod(g) == numel(getAxes(t))
+            if prod(g) == numel(getAxes(t,layers))
                 ax = reshape(ax,g);
             end
         case 'figure'
-            if isempty(fig.Children) 
+            if isempty(fig.Children)
                 ax = axes(fig);                                                             % create axes for the figure
             elseif isa(fig.Children,'matlab.graphics.layout.TiledChartLayout') 
-                ax = getAxisArray(fig.Children,[],'tiled')                                  % single recursive call as 'tiled'
+                ax = getAxisArray(fig.Children,[],'tiled',layers);                          % single recursive call as 'tiled'
             else
-                ax = getAxes(fig);                                                          % get existing axes of nonempty figure
+                ax = getAxes(fig,layers);                                                   % get existing axes of nonempty figure
             end
     end
 
 %  ------------------------------------------------------------------------------------------------
 
-function ax = getAxes(fig)
+function ax = getAxes(fig,layers)
 
-    ax = findall(fig.Children,'type','Axes');
+    ax = findobj(fig.Children,'type','Axes','-depth',layers);
 
 %  ------------------------------------------------------------------------------------------------
 
 
 %{
+% ---------------------------
+
 figure(1);
     t = tiledlayout(3,3);
     nexttile(t,5,[2 2]);
@@ -218,26 +221,46 @@ xfig(n=4);
     xfig(ax=gcf,g=2,b=1);
     xfig(ax=gca,g=0);
 
-t = tiledlayout(4,3);
-    arrayfun(@(i)nexttile(t,i),[1:4 5 8 9 12])
-    nexttile(t,6,[2 2])
-% [ax,fig] = xfig(ax=arrayfun(@(i)nexttile(t,i),[1:4 5 8 9 12]),b=0,g=0);
-    [ax,fig] = xfig(ax=t);
-    arrayfun(@(i)fplot(ax(i),{@(x)sinc(x),@(x)sinc(.7*x)},[-10+i,10-i]),1:numel(ax))
-    arrayfun(@(i)set(ax(i).XLabel,'String',sprintf('Hackerman of orda ${%d}$',10-i)), 1:numel(ax) )
-% fig.Position = [100 100 698 392]; 
-% exportgraphics(fig,'fig.svg','contenttype','vector')
-% print('-painters','-dsvg')
+% ---------------------------
 
     t = tiledlayout(4,3);
-    ax = arrayfun(@(i)nexttile(t,i),[1:4 5 8 9 12]);
-    ax = [ax nexttile(t,6,[2 2])];
+    ax = [arrayfun(@(i)nexttile(t,i),[1:4 5 8 9 12]) nexttile(t,6,[2 2])];
     
-    xfig(ax=ax,b=0,g='b');
+    xfig(ax=ax,b=1,g=0);
     arrayfun(@(i)fplot(ax(i),{@(x)sinc(x),@(x)sinc(.7*x)},[-i,i]),1:8);
     
-    xfig(ax=ax(end),b=1,g=0); rotate3d on
     scatter3(randi(10,5),randi(10,5),randi(10,5),markeredgecolor=col('atomictangerine'))
+    xfig(ax=ax(end),b=0,g=1); 
+    ax(end).View=[140 35]; 
+    tikzStyleAxes(gca)
+
+% ---------------------------
+
+k = 4; 
+n = 8;
+for i = 1:n
+    if i==1
+        t(i) = tiledlayout(k,k);
+    else 
+        t(i) = tiledlayout(t(i-1),k,k);
+        t(i).Layout.Tile = k+2;
+        t(i).Layout.TileSpan = [k-1 k-1];
+    end
+    if i~=n
+        vec = [1:k k+1:k:k^2];
+    else
+        vec = 1:k^2;
+    end
+    ax = arrayfun(@(d)nexttile(t(i),d),vec);
+    arrayfun(@(d)set(ax(d),'xticklabel',[],'yticklabel',[],'TickLength',[0,0]),1:numel(ax));
+    arrayfun(@(d)fplot(ax(d),{@(x)sinc(x),@(x)sinc(.7*x)},[-d,d]),1:numel(ax))
+end
+xfig(ax=gcf,b=1,layers=inf);
+xfig(ax=t(3),g=2,layers=3);
+exportgraphics(gcf,'figvec.pdf','contenttype','vector')
+
+% ---------------------------
+
 %}
 
 

@@ -3,70 +3,63 @@ function [ax,fig] = xfig(opts)
 %   DESCRIPTION
 %       [ax,fig] = XFIG(opts)
 %
-%       See also:       grootMod, v2string, mustBeStartString, mustBeMemberSCI
+%       See also:       grootMod, v2string, mustBeSubsOrM, mustBeMemberSCI
 %       External:       v2struct
 %
 %   INPUTS
-%       opts{:}         name-value pairs
-%           ax          exisiting axes object
+%       opts{:}
+%           ax          exisiting axes/figure/tiledlayout object
+%           layers      number of nested layers of tiledlayout axes to update
 %           n           figure number
-%           x/y         x/y-axis scale, 'lin'/0/'' or 'log'/1, default = 'lin'
-%           xy          x- and y- axis scale, e.gclc. xy=1 is shorthand for x='log', y='log' 
-%           b           box, ''/0/'off' or 1/'on', default = 'off' 
-%           h           hold, ''/0/'off' or 1/'on', default = 'on' 
-%           g/gm        grid/minor grid, ''/0/'off' or 1/'on', default = 'on'
-%           fs          font size, default = []
-%           grootFlag   same as 'flag' in grootMod(flag), default = ''
+%           c           clear axes, [default:'0']
+%           h           hold, [default:'on']  
+%           x/y/z       x/y-axis scale, [default:'lin']
+%           xy          shorthand for x=a, y=a
+%           xyz         shorthand for x=a, y=a, z=a
+%           b           box, [default:'off'] 
+%           g           grid, [default:'off']        
+%           gm          minor grid, [default:'off'] 
+%           grootflag   same as 'flag' in grootMod(flag), default = ''
 %
 %   UPDATES
-%       - clean-up inputs section
-%       - axis auto tight equivalent for x, tickaligned for y
-%       - tex option for all text
-%       + expand to 3D
-%       + call with figure
-%       - clear axes option with default=false
-%       - define presets, e.g. for matlab -> .svg -> .docx 
-%       - call with ax=n?
-%       + check if ax is figure containing tiledlayout
-%       + call with ax=figure, subfigure array
-%       - improve parsing of multi-choice inputs e.g. by decomposing strings
-%       + works automatically with 'flow'
+%       - tick alignment/visibility
+%       - tex option for all text [req. recursive struct traverse]
 %
 %   VERSION
-%   v1.3 / xx.11.22 / --    3d plots [done], enhanced input handling [in progress], call w. ax=n
-%   v1.2 / 03.11.22 / --    option ax=<axis object> updates existing axes [doc. in progress]
-%   v1.1 / 29.06.22 / V.Y.
+%   v1.3 / 05.11.22 / --    3d plots / nested tiledlayout support, opts applied to leayers=<num> /
+%                           enhanced input handling / c=<0/1> reset axes option / examples
+%   v1.2 / 03.11.22 / --    ax=<axis/figure/tiledlayout> updates or creates axes as necessary
+%   v1.1 / 29.06.22 / V.Y.  wrapper for FIGURE with shortcuts and GROOTMOD
 %  ------------------------------------------------------------------------------------------------
 
 arguments
-    opts.ax = []                                                                            % checked in switch at end
-    opts.grootFlag = string.empty                                                           % validated in grootMod call
-    % opts.tex
-    % opts.c        % clear axes
+    opts.ax = []
+    opts.grootflag = string.empty
     opts.n {mustBeScalarOrEmpty,mustBeInteger} = []
-    opts.b {mustBeMemberSCI(opts.b,["","0","off","1","on"])} = 'off'
-    opts.h {mustBeMemberSCI(opts.h,["","0","off","1","on"])} = 'on'
-    opts.x {mustBeMemberSCI(opts.x,["","0","lin","1","ln","log"])} = 'lin'
-    opts.y {mustBeMemberSCI(opts.y,["","0","lin","1","ln","log"])} = 'lin'
-    opts.z {mustBeMemberSCI(opts.z,["","0","lin","1","ln","log"])} = 'lin'
+    opts.c {mustBeMemberSCI(opts.c,["","0","off","1","on"])} = "off"
+    opts.b {mustBeMemberSCI(opts.b,["","0","off","1","on"])} = "off"
+    opts.h {mustBeMemberSCI(opts.h,["","0","off","1","on"])} = "on"
+    opts.x {mustBeMemberSCI(opts.x,["","0","lin","1","ln","log"])} = "lin"
+    opts.y {mustBeMemberSCI(opts.y,["","0","lin","1","ln","log"])} = "lin"
+    opts.z {mustBeMemberSCI(opts.z,["","0","lin","1","ln","log"])} = "lin"
     opts.xy {mustBeMemberSCI(opts.xy,["","0","lin","1","ln","log"])} = []
     opts.xyz {mustBeMemberSCI(opts.xyz,["","0","lin","1","ln","log"])} = []
-    opts.g {mustBeMemberSCI(opts.g,["","0","off","1","on","xy","xyz","x","y","2","b","all"])} = 'off'
-    opts.gm {mustBeMemberSCI(opts.gm,["","0","off","1","on","xy","xyz","x","y","z"])} = 'off'
+    opts.g {mustBeSubsOrM(opts.g,"xyz",["0","off","1","on","2","b","all"],0,[1 1 0])} = "off"
+    opts.gm {mustBeSubsOrM(opts.gm,"xyz",["0","off","1","on"],0,[1 1 0])} = "off"
     opts.layers (1,1) {mustBeNonnegative} = 0
 end
 
 % Unpack opts & set groot state 
     v2struct(opts)
-    grootMod(grootFlag)
+    grootMod(grootflag)
 
 % Define multiple choice arrays
     arrOnOff    = ["","0","off"; "1","on","on"];
     arrLinLog   = ["","0","lin"; "1","ln","log"];
     arrRepAdd   = ["0","off","off","replace"; "","1","on","add"];
-    arrGrid     = [ "","0","off"; "1","xyz","on"; repmat(["x";"y";"z";"xy"],1,3); "2","all","b"];
+    arrGrid     = ["0","0","off"; "1","on","on"; "2","b","all"];
 
-% Input parsing, axis scale
+% Axis scales
     if ~isempty(xyz)
         parseMultiChoice(arrLinLog,xyz)
         [x,y,z] = deal(xyz);
@@ -77,31 +70,26 @@ end
         parseMultiChoice(arrLinLog,x,y,z)
     end
 
-% Input parsing, grids
-    [xg,yg,zg,xgm,ygm,zgm] = deal('off');
-
-    parseMultiChoice(arrGrid,g)
-    switch lower(g)
-        case 'x',   xg = 'on';
-        case 'y',   yg = 'on';
-        case 'z',   zg = 'on';
-        case 'xy',  [xg,yg] = deal('on');                                                   % x/y major grids
-        case 'b',   [xg,yg,zg,gm] = deal('on');                                             % all axes, minor + major grids
-        otherwise   [xg,yg,zg] = deal(g);
+% Grids, precedence 'xyz' > gm > g
+    gv = false(3,2);
+    parseMultiChoice(arrGrid,g,gm)
+    switch g
+        case "off"
+        case "on",  gv(:,1) = true;
+        case "all", gv(:,:) = true;
+        otherwise,  gv(:,1) = ismemberLoc('xyz',opts.g);
     end
-
-    parseMultiChoice(arrGrid,gm)
-    switch lower(gm)
-        case 'x',   xgm = 'on';
-        case 'y',   ygm = 'on';
-        case 'z',   zgm = 'on';
-        case 'xy',  [xgm,ygm] = deal('on');
-        otherwise,  [xgm,ygm,zgm] = deal(gm);
+    switch gm
+        case "off", gv(:,2) = false;
+        case "on",  gv(:,2) = true;
+        otherwise,  gv(:,2) = ismemberLoc('xyz',opts.gm);
     end
+    gv = boolSwap(gv,["on" "off"]);
 
-% Input parsing, misc
-    parseMultiChoice(arrOnOff,b)
+% Misc. input parsing
+    parseMultiChoice(arrOnOff,b,c)
     parseMultiChoice(arrRepAdd,h)
+    clearax = c=="on";
 
 % Get/create figure for the axes
     if ~isempty(ax)
@@ -120,9 +108,13 @@ end
         case 'matlab.graphics.layout.TiledChartLayout'
             ax = getAxisArray(ax,[],'tiled',layers);
         case 'double'
-            fig
             ax = getAxisArray([],fig,'figure',layers);
         otherwise, error('xfig: ax must be Axes, Figure, TiledChartLayout or empty') 
+    end
+
+% Clear if required
+    if clearax
+        arrayfun(@(i)cla(ax(i),'reset'),1:numel(ax))
     end
 
 % Assign properties
@@ -134,12 +126,12 @@ end
         ax(i).XScale = x;
         ax(i).YScale = y;
         ax(i).ZScale = z;
-        ax(i).XGrid = xg;
-        ax(i).YGrid = yg;
-        ax(i).ZGrid = zg;
-        ax(i).XMinorGrid = xgm;
-        ax(i).YMinorGrid = ygm;
-        ax(i).ZMinorGrid = zgm;
+        ax(i).XGrid = gv(1);
+        ax(i).YGrid = gv(2);
+        ax(i).ZGrid = gv(3);
+        ax(i).XMinorGrid = gv(4);
+        ax(i).YMinorGrid = gv(5);
+        ax(i).ZMinorGrid = gv(6);
         ax(i).GridAlpha = 0.12;
         ax(i).MinorGridLineStyle = '-';
         ax(i).MinorGridAlpha = 0.05;
@@ -191,38 +183,45 @@ function ax = getAxisArray(ax,fig,type,layers)
 %  ------------------------------------------------------------------------------------------------
 
 function ax = getAxes(fig,layers)
-
     ax = findobj(fig.Children,'type','Axes','-depth',layers);
 
 %  ------------------------------------------------------------------------------------------------
 
+function mask = ismemberLoc(compArr,A)
+    mask = ismember(compArr,char(lower(A)));
 
+%  ------------------------------------------------------------------------------------------------
+
+function y = boolSwap(x,vals)
+    y(x)=vals(1); y(~x)=vals(2); y=reshape(y,size(x));
+
+    
+%  ------------------------------------------------------------------------------------------------
 %{
-% ---------------------------
-
-figure(1);
+% EXAMPLE 1A, no change of properties on uninitialised axes
+    figure(1);
     t = tiledlayout(3,3);
     nexttile(t,5,[2 2]);
     nexttile(t,4,[1 2]);
-    % arrayfun(@(i)nexttile(t,i),1:3)
     xfig(ax=t,b=1);
 
-figure(2);
+    figure(2);
     g = tiledlayout(3,3);
     arrayfun(@(i)nexttile(g,i),1:(prod(g.GridSize)-1))
     [ax,fig] = xfig(ax=g,b=0)
 
-figure(3);
+% EXAMPLE 1B, precedence of grid specs, i.e. gm > g
+    figure(3);
     e = tiledlayout(3,3);
-    [ax,fig] = xfig(ax=e,b=1)
+    [ax,fig] = xfig(ax=e,b=1,g=2,gm='y')
 
-xfig(n=4);
-    fplot({@(x)sinc(x),@(x)sinc(.7*x)},[-5,5])
+% EXAMPLE 1C: reset g=2, b=1 settings on second xfig call with log y-axis, g=0
+    xfig(n=4);
+    fplot({@(x)exp(x),@(x)exp(.6*x)},[0,15])
     xfig(ax=gcf,g=2,b=1);
-    xfig(ax=gca,g=0);
+    xfig(ax=gca,g=0,y=1); legend;
 
-% ---------------------------
-
+% EXAMPLE 2, tiles, 3d plots, tikz-like axes, non-standard colors
     t = tiledlayout(4,3);
     ax = [arrayfun(@(i)nexttile(t,i),[1:4 5 8 9 12]) nexttile(t,6,[2 2])];
     
@@ -232,37 +231,36 @@ xfig(n=4);
     scatter3(randi(10,5),randi(10,5),randi(10,5),markeredgecolor=col('atomictangerine'))
     xfig(ax=ax(end),b=0,g=1); 
     ax(end).View=[140 35]; 
-    tikzStyleAxes(gca)
+    tikzStyleAxes(gca);
 
-% ---------------------------
-
-k = 4; 
-n = 8;
-for i = 1:n
-    if i==1
-        t(i) = tiledlayout(k,k);
-    else 
-        t(i) = tiledlayout(t(i-1),k,k);
-        t(i).Layout.Tile = k+2;
-        t(i).Layout.TileSpan = [k-1 k-1];
+% EXAMPLE 3, fractal tiles, hidden ticks, export to vector formats
+    k = 4; 
+    n = 8;
+    for i = 1:n
+        if i==1
+            t(i) = tiledlayout(k,k);
+        else 
+            t(i) = tiledlayout(t(i-1),k,k);
+            t(i).Layout.Tile = k+2;
+            t(i).Layout.TileSpan = [k-1 k-1];
+        end
+        if i~=n
+            vec = [1:k k+1:k:k^2];
+        else
+            vec = 1:k^2;
+        end
+        ax = arrayfun(@(d)nexttile(t(i),d),vec);
+        arrayfun(@(d)set(ax(d),'xticklabel',[],'yticklabel',[],'TickLength',[0,0]),1:numel(ax));
+        arrayfun(@(d)fplot(ax(d),{@(x)sinc(x),@(x)sinc(.7*x)},[-d,d]),1:numel(ax))
     end
-    if i~=n
-        vec = [1:k k+1:k:k^2];
-    else
-        vec = 1:k^2;
-    end
-    ax = arrayfun(@(d)nexttile(t(i),d),vec);
-    arrayfun(@(d)set(ax(d),'xticklabel',[],'yticklabel',[],'TickLength',[0,0]),1:numel(ax));
-    arrayfun(@(d)fplot(ax(d),{@(x)sinc(x),@(x)sinc(.7*x)},[-d,d]),1:numel(ax))
-end
-xfig(ax=gcf,b=1,layers=inf);
-xfig(ax=t(3),g=2,layers=3);
-exportgraphics(gcf,'figvec.pdf','contenttype','vector')
 
-% ---------------------------
+    xfig(ax=gcf,b=1,layers=inf);    % apply settings to all layers below t(3)
+    xfig(ax=t(3),g=2,layers=3);     % apply to max 3 layers below t(3)
 
+    exportgraphics(gcf,'fractal.pdf','contenttype','vector')
+    print(gcf,'-dsvg','fractal')
 %}
-
+%  ------------------------------------------------------------------------------------------------
 
 
 

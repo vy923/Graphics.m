@@ -1,10 +1,9 @@
-function [ax,fig] = xfig(opts)
+function [ax,fig] = xfig(obj,opts)
 %  ------------------------------------------------------------------------------------------------
 %   DESCRIPTION
 %       [ax,fig] = XFIG(opts)
 %
-%       See also:       grootMod, v2string, mustBeSubsOrM, mustBeMemberSCI
-%       External:       v2struct
+%       See also:       grootMod, s2vars, v2string, mustBeSubsOrM, mustBeMemberSCI
 %
 %   INPUTS
 %       opts{:}
@@ -19,15 +18,13 @@ function [ax,fig] = xfig(opts)
 %           b           box, [default:'off'] 
 %           g           grid, [default:'off']        
 %           gm          minor grid, [default:'off'] 
-%           axc         [v1.4] axis color
-%           r3d         [v1.4] rotate3d
-%           e           [v1.4] export, svg / pdf / pdf<num>
-%           [x/y/z]tv   [v1.4] x/y/z tick visibility
-%           tv          [v1.4] tick visibility
-%           [x/y/z]ta   [v1.4] x/y/z tick alignment
-%           ta          [v1.4] tick alignment
-%           tex         [v1.X] latex -> tex rendering
-%           grootflag   same as 'flag' in grootMod(flag), default = ''
+%           axc         [-] axis color
+%           r3d         [-] rotate3d
+%           e           [-] export, svg / pdf / pdf<num>
+%           xta/yta/zta [-] x/y/z tick alignment
+%           ta          [-] tick alignment
+%           tex         [-] latex -> tex rendering
+%           gmod        grootMod required state [default:true]
 %
 %   UPDATES
 %       - tick alignment/visibility
@@ -37,43 +34,94 @@ function [ax,fig] = xfig(opts)
 %       - integrated tikz axes style option
 %
 %   VERSION
-%   v2.0 / xx.xx.22 / --    persistent states intersected with new call
-%   v1.4 / xx.11.22 / --    [in progress] axis color / export / tick alignment / tick visibility /
-%                           rotate3d on 
+%   v2.0 / xx.xx.22 / --    [in progress] axis color [-] / export [-] / tick alignment [-] / 
+%                           tick visibility [-] / rotate3d on [-] / can be called without ax [+] / 
+%                           persistent states intersected with new call
 %   v1.3 / 05.11.22 / --    3d plots / nested tiledlayout support, opts applied to leayers=<num> /
 %                           enhanced input handling / c=<0/1> reset axes option / examples
 %   v1.2 / 03.11.22 / --    ax=<axis/figure/tiledlayout> updates or creates axes as necessary
 %   v1.1 / 29.06.22 / V.Y.  wrapper for FIGURE with shortcuts and GROOTMOD
 %  ------------------------------------------------------------------------------------------------
 
+arguments(Repeating)
+    obj
+end
 arguments
-    opts.ax = []
-    opts.grootflag = string.empty
-    opts.n {mustBeScalarOrEmpty,mustBeInteger} = []
-    opts.c {mustBeMemberSCI(opts.c,["","0","off","1","on"])} = "off"
-    opts.b {mustBeMemberSCI(opts.b,["","0","off","1","on"])} = "off"
-    opts.h {mustBeMemberSCI(opts.h,["","0","off","1","on"])} = "on"
-    opts.x {mustBeMemberSCI(opts.x,["","0","lin","1","ln","log"])} = "lin"
-    opts.y {mustBeMemberSCI(opts.y,["","0","lin","1","ln","log"])} = "lin"
-    opts.z {mustBeMemberSCI(opts.z,["","0","lin","1","ln","log"])} = "lin"
-    opts.xy {mustBeMemberSCI(opts.xy,["","0","lin","1","ln","log"])} = []
-    opts.xyz {mustBeMemberSCI(opts.xyz,["","0","lin","1","ln","log"])} = []
-    opts.g {mustBeSubsOrM(opts.g,"xyz",["0","off","1","on","2","b","all"],0,[1 1 0])} = "off"
-    opts.gm {mustBeSubsOrM(opts.gm,"xyz",["0","off","1","on"],0,[1 1 0])} = "off"
+    opts.gmod
+    opts.n {mustBeScalarOrEmpty,mustBeInteger}
+    opts.c {mustBeMemberSCI(opts.c,["","0","off","1","on"])}
+    opts.b {mustBeMemberSCI(opts.b,["","0","off","1","on"])}
+    opts.h {mustBeMemberSCI(opts.h,["","0","off","1","on"])}
+    opts.x {mustBeMemberSCI(opts.x,["","0","lin","1","ln","log"])}
+    opts.y {mustBeMemberSCI(opts.y,["","0","lin","1","ln","log"])}
+    opts.z {mustBeMemberSCI(opts.z,["","0","lin","1","ln","log"])}
+    opts.xy {mustBeMemberSCI(opts.xy,["","0","lin","1","ln","log"])}
+    opts.xyz {mustBeMemberSCI(opts.xyz,["","0","lin","1","ln","log"])}
+    opts.g {mustBeSubsOrM(opts.g,"xyz",["0","off","1","on","2","b","all"],0,[1 1 0])}
+    opts.gm {mustBeSubsOrM(opts.gm,"xyz",["0","off","1","on"],0,[1 1 0])}
     opts.layers (1,1) {mustBeNonnegative} = 0
 end
 
 % Unpack opts & set groot state 
-    v2struct(opts)
-    grootMod(grootflag)
+    s2vars(opts)
+    % temporary
+    if ~exist('gmod','var'),    gmod = true;    end
+    if ~exist('n','var'),       n = [];         end
+    if ~exist('c','var'),       c = 0;          end
+    if ~exist('b','var'),       b = 0;          end
+    if ~exist('h','var'),       h = 1;          end
+    if ~exist('x','var'),       x = 0;          end
+    if ~exist('y','var'),       y = 0;          end
+    if ~exist('z','var'),       z = 0;          end
+    if ~exist('xy','var'),      xy = [];        end
+    if ~exist('xyz','var'),     xyz = [];       end
+    if ~exist('g','var'),       g = 0;          end
+    if ~exist('gm','var'),      gm = 0;         end
+    if ~exist('layers','var'),  layers = 0;     end
 
+    grootMod(gmod)
+    % persistent xf
+
+   
+% Get/create figure and axes
+    if isempty(obj)
+        if isempty(n) 
+            fig = figure;                                                                   % next unused number
+        else 
+            fig = figure(n);                                                                % specified target / xfig(n=6,)
+        end
+    else 
+        obj = obj{1};
+        switch class(obj)
+            case 'double'                                                                   % xfig(6,)
+                n = obj;
+                fig = figure(n);
+            case 'matlab.graphics.axis.Axes'                                                % xfig(gca,)
+                ax = obj;
+                fig = gcf;
+            case 'matlab.ui.Figure'                                                         % xfig(gcf,)
+                fig = obj;
+            case 'matlab.graphics.layout.TiledChartLayout'                                      
+                fig = gcf;
+                ax = getAxisArray(obj,[],'tiled',layers);
+            otherwise
+                error('xfig: obj must be <axes/figure/tiledlayout/integer/empty>')
+        end 
+    end
+    if ~exist('ax','var')
+        ax = getAxisArray([],fig,'figure',layers); 
+    end
+    if isempty(n)  
+        n = fig.Number; 
+    end
+    
 % Define multiple choice arrays
-    arrOnOff    = ["","0","off"; "1","on","on"];
-    arrLinLog   = ["","0","lin"; "1","ln","log"];
-    arrRepAdd   = ["0","off","off","replace"; "","1","on","add"];
-    arrGrid     = ["0","0","off"; "1","on","on"; "2","b","all"];
+    arrOnOff  = ["","0","off"; "1","on","on"];
+    arrLinLog = ["","0","lin"; "1","ln","log"];
+    arrRepAdd = ["0","off","off","replace"; "","1","on","add"];
+    arrGrid   = ["0","0","off"; "1","on","on"; "2","b","all"];
 
-% Axis scales
+    % Axis scales
     if ~isempty(xyz)
         parseMultiChoice(arrLinLog,xyz)
         [x,y,z] = deal(xyz);
@@ -103,31 +151,9 @@ end
 % Misc. input parsing
     parseMultiChoice(arrOnOff,b,c)
     parseMultiChoice(arrRepAdd,h)
-    clearax = c=="on";
-
-% Get/create figure for the axes
-    if ~isempty(ax)
-        fig = gcf;                                                                          % existing axis object                
-    elseif ~isempty(n) && n>=1 
-        fig = figure(n);                                                                    % specified target figure
-    else
-        fig = figure;                                                                       % next unused number
-    end
-
-% Get/create axes for the figure
-    switch class(ax)
-        case 'matlab.graphics.axis.Axes'                                                    % existing axes array, do nothing
-        case 'matlab.ui.Figure'                                                             % variable ax contains a figure / subfigure / tiledlayout in figure
-            ax = getAxisArray([],ax,'figure',layers);
-        case 'matlab.graphics.layout.TiledChartLayout'
-            ax = getAxisArray(ax,[],'tiled',layers);
-        case 'double'
-            ax = getAxisArray([],fig,'figure',layers);
-        otherwise, error('xfig: ax must be <axes/figure/tiledlayout/empty>') 
-    end
 
 % Clear if required
-    if clearax
+    if c=="on" 
         arrayfun(@(i)cla(ax(i),'reset'),1:numel(ax))
     end
 
@@ -146,7 +172,7 @@ end
         ax(i).XMinorGrid = gv(4);
         ax(i).YMinorGrid = gv(5);
         ax(i).ZMinorGrid = gv(6);
-        ax(i).GridAlpha = 0.12;
+        ax(i).GridAlpha = 0.10;
         ax(i).MinorGridLineStyle = '-';
         ax(i).MinorGridAlpha = 0.05;
         ax(i).LooseInset = ax(i).TightInset;
@@ -217,33 +243,33 @@ function y = boolSwap(x,vals)
     t = tiledlayout(3,3);
     nexttile(t,5,[2 2]);
     nexttile(t,4,[1 2]);
-    xfig(ax=t,b=1);
+    xfig(t,b=1);
 
     figure(2);
     g = tiledlayout(3,3);
     arrayfun(@(i)nexttile(g,i),1:(prod(g.GridSize)-1))
-    [ax,fig] = xfig(ax=g,b=0)
+    [ax,fig] = xfig(g,b=0)
 
 % EXAMPLE 1B, precedence of grid specs, i.e. gm > g
     figure(3);
     e = tiledlayout(3,3);
-    [ax,fig] = xfig(ax=e,b=1,g=2,gm='y')
+    [ax,fig] = xfig(e,b=1,g=2,gm='y')
 
 % EXAMPLE 1C: reset g=2, b=1 settings on second xfig call with log y-axis, g=0
     xfig(n=4);
     fplot({@(x)exp(x),@(x)exp(.6*x)},[0,15])
-    xfig(ax=gcf,g=2,b=1);
-    xfig(ax=gca,g=0,y=1); legend;
+    xfig(gcf,g=2,b=1);
+    xfig(gca,g=0,y=1); legend;
 
 % EXAMPLE 2, tiles, 3d plots, tikz-like axes, non-standard colors
     t = tiledlayout(4,3);
     ax = [arrayfun(@(i)nexttile(t,i),[1:4 5 8 9 12]) nexttile(t,6,[2 2])];
     
-    xfig(ax=ax,b=1,g=0);
+    xfig(ax,b=1,g=0);
     arrayfun(@(i)fplot(ax(i),{@(x)sinc(x),@(x)sinc(.7*x)},[-i,i]),1:8);
     
     scatter3(randi(10,6),randi(10,6),randi(10,6),markeredgecolor=col('atomictangerine'))
-    xfig(ax=ax(end),b=0,g=1); 
+    xfig(ax(end),b=0,g=1); 
     ax(end).View=[140 35]; 
     tikzStyleAxes(gca);
 
@@ -265,8 +291,8 @@ function y = boolSwap(x,vals)
         arrayfun(@(d)set(ax(d),'xticklabel',[],'yticklabel',[],'TickLength',[0,0]),1:numel(ax));
         arrayfun(@(d)fplot(ax(d),{@(x)sinc(x),@(x)sinc(.7*x)},[-d,d]),1:numel(ax))
     end
-    xfig(ax=gcf,b=1,layers=inf); % apply settings to all layers below t(3)
-    xfig(ax=t(3),g=2,layers=2); % apply to max 2 layers below t(3)
+    xfig(gcf,b=1,layers=inf); % apply settings to all layers below t(3)
+    xfig(t(3),g=2,layers=2); % apply to max 2 layers below t(3)
 
     exportgraphics(gcf,'fractal.pdf','contenttype','vector')
     print(gcf,'-dsvg','fractal')

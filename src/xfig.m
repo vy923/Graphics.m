@@ -19,13 +19,27 @@ function [ax,fig] = xfig(opts)
 %           b           box, [default:'off'] 
 %           g           grid, [default:'off']        
 %           gm          minor grid, [default:'off'] 
+%           axc         [v1.4] axis color
+%           r3d         [v1.4] rotate3d
+%           e           [v1.4] export, svg / pdf / pdf<num>
+%           [x/y/z]tv   [v1.4] x/y/z tick visibility
+%           tv          [v1.4] tick visibility
+%           [x/y/z]ta   [v1.4] x/y/z tick alignment
+%           ta          [v1.4] tick alignment
+%           tex         [v1.X] latex -> tex rendering
 %           grootflag   same as 'flag' in grootMod(flag), default = ''
 %
 %   UPDATES
 %       - tick alignment/visibility
 %       - tex option for all text [req. recursive struct traverse]
+%       - save state of known figures
+%       - export shortcut option
+%       - integrated tikz axes style option
 %
 %   VERSION
+%   v2.0 / xx.xx.22 / --    persistent states intersected with new call
+%   v1.4 / xx.11.22 / --    [in progress] axis color / export / tick alignment / tick visibility /
+%                           rotate3d on 
 %   v1.3 / 05.11.22 / --    3d plots / nested tiledlayout support, opts applied to leayers=<num> /
 %                           enhanced input handling / c=<0/1> reset axes option / examples
 %   v1.2 / 03.11.22 / --    ax=<axis/figure/tiledlayout> updates or creates axes as necessary
@@ -109,7 +123,7 @@ end
             ax = getAxisArray(ax,[],'tiled',layers);
         case 'double'
             ax = getAxisArray([],fig,'figure',layers);
-        otherwise, error('xfig: ax must be Axes, Figure, TiledChartLayout or empty') 
+        otherwise, error('xfig: ax must be <axes/figure/tiledlayout/empty>') 
     end
 
 % Clear if required
@@ -195,7 +209,7 @@ function mask = ismemberLoc(compArr,A)
 function y = boolSwap(x,vals)
     y(x)=vals(1); y(~x)=vals(2); y=reshape(y,size(x));
 
-    
+
 %  ------------------------------------------------------------------------------------------------
 %{
 % EXAMPLE 1A, no change of properties on uninitialised axes
@@ -228,7 +242,7 @@ function y = boolSwap(x,vals)
     xfig(ax=ax,b=1,g=0);
     arrayfun(@(i)fplot(ax(i),{@(x)sinc(x),@(x)sinc(.7*x)},[-i,i]),1:8);
     
-    scatter3(randi(10,5),randi(10,5),randi(10,5),markeredgecolor=col('atomictangerine'))
+    scatter3(randi(10,6),randi(10,6),randi(10,6),markeredgecolor=col('atomictangerine'))
     xfig(ax=ax(end),b=0,g=1); 
     ax(end).View=[140 35]; 
     tikzStyleAxes(gca);
@@ -244,18 +258,15 @@ function y = boolSwap(x,vals)
             t(i).Layout.Tile = k+2;
             t(i).Layout.TileSpan = [k-1 k-1];
         end
-        if i~=n
-            vec = [1:k k+1:k:k^2];
-        else
-            vec = 1:k^2;
+        if i~=n, idx = [1:k k+1:k:k^2];
+        else, idx = 1:k^2;
         end
-        ax = arrayfun(@(d)nexttile(t(i),d),vec);
+        ax = arrayfun(@(d)nexttile(t(i),d),idx);
         arrayfun(@(d)set(ax(d),'xticklabel',[],'yticklabel',[],'TickLength',[0,0]),1:numel(ax));
         arrayfun(@(d)fplot(ax(d),{@(x)sinc(x),@(x)sinc(.7*x)},[-d,d]),1:numel(ax))
     end
-
-    xfig(ax=gcf,b=1,layers=inf);    % apply settings to all layers below t(3)
-    xfig(ax=t(3),g=2,layers=3);     % apply to max 3 layers below t(3)
+    xfig(ax=gcf,b=1,layers=inf); % apply settings to all layers below t(3)
+    xfig(ax=t(3),g=2,layers=2); % apply to max 2 layers below t(3)
 
     exportgraphics(gcf,'fractal.pdf','contenttype','vector')
     print(gcf,'-dsvg','fractal')

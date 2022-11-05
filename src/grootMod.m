@@ -9,8 +9,9 @@ function grootMod(flag)
 %       Related:            xfig
 %
 %   VERSION
+%   v1.5 / xx.11.22 / --    [in progress] rep changed to cell, allowing arbitrary properties 
 %   v1.4 / 03.10.22 / --    tiledlayout element order row -> column major
-%   v1.3 / 27.06.22 / --    added 'hold on' equivalent, updated code
+%   v1.3 / 27.06.22 / --    added 'hold on' equivalent, code clean-up
 %   v1.2 / 26.06.22 / --    checks required vs. current state to avoid recomputation
 %   v1.1 / 13.02.22 / V.Y.
 %  ------------------------------------------------------------------------------------------------
@@ -26,15 +27,18 @@ if isempty(lastState)                                                           
     lastState = false;                                                                  % currently at default settings
 end
 
-          % name contains               old value               new value
+          % name contains               old value                   new value
 if isempty(rep)
-    rep = [ "FontName"                  "Helvetica"             "Times New Roman"
-            "FontName"                  "MS Sans Serif"         "Monospaced"
-            "Interpreter"               "tex"                   "latex" 
-            "TiledlayoutPadding"        "loose"                 "none"
-            "TiledlayoutTileSpacing"    "loose"                 "tight"
-            "TiledlayoutTileIndexing"   "rowmajor"              "columnmajor"
-            "AxesNextPlot"              "replace"               "add"           ]; 
+    rep = { "FontName"                  "Helvetica"                 "Times New Roman"
+            "FontName"                  "MS Sans Serif"             "Monospaced"
+            "Interpreter"               "tex"                       "latex" 
+            "TiledlayoutPadding"        "loose"                     "none"
+            "TiledlayoutTileSpacing"    "loose"                     "tight"
+            "TiledlayoutTileIndexing"   "rowmajor"                  "columnmajor"
+            "AxesNextPlot"              "replace"                   "add"           
+            "BackgroundColor"           [0.9400 0.9400 0.9400]      col('w')
+            "FigureColor"               [0.9400 0.9400 0.9400]      col('w')    
+            }; 
 end
 
 % Change settings if required
@@ -44,11 +48,12 @@ if lastState~=reqState
     f = string(fieldnames(s));                                                          % String array of field names
     
     for k = 1:size(rep,1)                                                               % Loop over repl rows
-        str = f(isSubstring(rep(k,1),f));
+        str = f(isSubstring(rep{k,1},f));
         for i = 1:numel(str)                                                            % Loop over property fields
-            if s.(str(i)) == rep(k,2)
+            if isequaln(s.(str(i)),rep{k,2})                                            % [05.11.22] changed comparison from "=="
                 strtmp = strrep(str(i),'factory','default');
-                set(groot, strtmp, rep(k,2+reqState));                                  % Replace if old value matches target, 2 = reset, 3 = mod
+                disp(strtmp)
+                set(groot, strtmp, rep{k,2+reqState});                                  % Replace if old value matches target, 2 = reset, 3 = mod
             end
         end
     end

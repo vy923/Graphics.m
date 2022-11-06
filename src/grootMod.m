@@ -1,15 +1,14 @@
 function grootMod(flag)
 %  ------------------------------------------------------------------------------------------------
 %   DESCRIPTION
-%       grootmod()          changes global (groot) object properties as reqired in 'rep' array
+%       grootMod()          changes global (groot) object properties as reqired in 'rep' array
 %       grootMod(false)     recovers defaults given in col 2 of 'rep'
 %
-%       See also:           --
+%       See also:           col
 %       Related:            xfig
 %
 %   VERSION
-%   v2.0 / xx.11.22 / --    [in progress] rep changed to cell, allowing arbitrary properties / 
-%                           argument validation -> boolean
+%   v2.0 / 06.11.22 / --    rep string -> cell / flag string -> bool or missing / updated code
 %   v1.4 / 03.10.22 / --    tiledlayout element order row -> column major
 %   v1.3 / 27.06.22 / --    added 'hold on' equivalent, code clean-up
 %   v1.2 / 26.06.22 / --    checks required vs. current state to avoid recomputation
@@ -17,14 +16,13 @@ function grootMod(flag)
 %  ------------------------------------------------------------------------------------------------
 
 % Validation
-if nargin < 1 || isempty(flag)
+if nargin < 1 || isempty(flag) || ismissing(flag)
     flag = true;
+else, mustBeMember(flag,[0 1])
 end
-mustBeMember(flag,[0 1])
-
 persistent state rep
 
-% on first function call
+% Assign on first function call
 if isempty(state) 
     state = false;
     rep = { "FontName"                  "Helvetica"                 "Times New Roman"
@@ -40,9 +38,8 @@ end
 
 % Change settings if required
 if state~=flag
-
     s = get(groot,'factory');                                                           % Property strucure
-    f = string(fieldnames(s));                                                          % String array of field names
+    f = string(fieldnames(s));                                                          % String array of field names 
     
     for k = 1:size(rep,1)                                                               % Loop over repl rows
         str = f(isSubstring(rep{k,1},f));

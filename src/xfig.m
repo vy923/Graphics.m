@@ -420,10 +420,14 @@ function fig = gcfLoc(n)
     end
 
 % EXAMPLE 5, apply xfig settings to a .fig loaded from file
-    grootMod(false)  % reset to default 
-    f=@(x)tanh(x).*sin(x.^2); figure; fplot({f,@(x)1.5*f(.5*x)},1.0*[-pi,pi]);  % plot some stuff
-    savefig(gcf); pause(5); close;  % export figure
-    xfig; close; xfig(openfig('untitled'),g=2);  % reopen with xfig
+    grootMod(false)                                         % reset to default 
+
+    f = @(x)tanh(x).*sin(x.^2); 
+    figure; fplot({f,@(x)1.5*f(.5*x)},1.0*[-pi,pi]);
+    savefig(gcf); pause(5); close;                          % export figure
+
+    xfig; close;                                            % call grootMod, alt. grootMod()
+    xfig(openfig('untitled'),g=2);                          % reopen with xfig
 
 %}
 %  ------------------------------------------------------------------------------------------------

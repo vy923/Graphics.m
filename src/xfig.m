@@ -33,7 +33,8 @@ function [ax,fig] = xfig(obj,opts)
 %   v2.1 / xx.11.22 / --    axis color [-] / export [-] / tick alignment [-] / tex interpreter [-] /
 %                           rotate3d [-] / export [-] / reset XFIG formatting [-] / clear without 
 %                           resetting formatting [-] / tiledlayout vector obj [-] / vector obj [-] / 
-%                           PolarAxes [+] / code mod: class-based assignment axis fields [+]
+%                           PolarAxes [+] / code mod: class-based assignment axis fields [+] / bugfix in 
+%                           hierarchical assignments, e.g. minor grid [+]
 %   v2.0 / 07.11.22 / --    ax=<obj> kwarg replaced by optional obj=<axes/figure/tiledlayout/integer> /
 %                           new calls do not overwrite existing XFIG axis settings /  
 %                           bool inputs for binary switches / performance improvements 
@@ -176,14 +177,14 @@ end
             case "off", gv(:,:) = "off";
             case "on",  gv(:,1) = "on";
             case "all", gv(:,:) = "on";
-            otherwise,  gv(ismemberLoc('xyz',g),1) = "on";
+            otherwise,  gv(:,1) = boolSwap(ismemberLoc('xyz',g),["on" "off"]);
         end
     end
     if ~ismissing(gm)
         switch gm
             case "off", gv(:,2) = "off";
             case "on",  gv(:,2) = "on";
-            otherwise,  gv(ismemberLoc('xyz',gm),2) = "on";
+            otherwise,  gv(:,2) = boolSwap(ismemberLoc('xyz',gm),["on" "off"]);
         end
     end
 
@@ -320,6 +321,11 @@ function mask = ismemberLoc(comparr,A)
 
 %  ------------------------------------------------------------------------------------------------
 
+function y = boolSwap(x,vals) 
+    y(x)=vals(1); y(~x)=vals(2); y=reshape(y,size(x));
+
+%  ------------------------------------------------------------------------------------------------
+
 function fig = gcfLoc(n)
 
     persistent g
@@ -327,16 +333,10 @@ function fig = gcfLoc(n)
     end
 
     cf = g.CurrentFigure;
-    if isempty(cf) || isempty(n) || cf.Number==n, fig = gcf;                                        % if n/Number are missing/empty, gcf creates a new fig
+    if isempty(cf) || isempty(n) || cf.Number==n, fig = gcf;
     else, fig = figure; 
     end
 
-        
-%  ------------------------------------------------------------------------------------------------
-
-% [OBSOLETE AS OF v2.0]
-% function y = boolSwap(x,vals) 
-%     y(x)=vals(1); y(~x)=vals(2); y=reshape(y,size(x));
 
 %  ------------------------------------------------------------------------------------------------
 %{
@@ -404,7 +404,7 @@ function fig = gcfLoc(n)
     xfig(polaraxes,gm=1); 
     polarplot(sin(0:.01:2*pi),cos(0:.01:2*pi),color=col('rc'));
 
-% EXAMPLE 4B, place in tiled layout
+% EXAMPLE 4B, place polar axes in tiled layout
     t = tiledlayout(2,3);
 
     for i = 1:t(1).GridSize(2)
@@ -419,7 +419,11 @@ function fig = gcfLoc(n)
         fplot({@(x)sinc(x),@(x)sinc(.7*x)},[-3*i,3*i]);
     end
 
-
+% EXAMPLE 5, apply xfig settings to a .fig loaded from file
+    grootMod(false)  % reset to default 
+    f=@(x)tanh(x).*sin(x.^2); figure; fplot({f,@(x)1.5*f(.5*x)},1.0*[-pi,pi]);  % plot some stuff
+    savefig(gcf); pause(5); close;  % export figure
+    xfig; close; xfig(openfig('untitled'),g=2);  % reopen with xfig
 
 %}
 %  ------------------------------------------------------------------------------------------------

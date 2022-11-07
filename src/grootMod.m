@@ -25,7 +25,7 @@ persistent state rep
 % Assign on first function call
 if isempty(state) 
     state = false;
-    rep = { "FontName"                  "Helvetica"                 "Times New Roman"
+    rep = { "FontName"                  "Helvetica"                 "Times"
             "FontName"                  "MS Sans Serif"             "Monospaced"
             "Interpreter"               "tex"                       "latex" 
             "TiledlayoutPadding"        "loose"                     "none"
@@ -33,7 +33,7 @@ if isempty(state)
             "TiledlayoutTileIndexing"   "rowmajor"                  "columnmajor"
             "AxesNextPlot"              "replace"                   "add"           
             "BackgroundColor"           [0.9400 0.9400 0.9400]      col('w')
-            "FigureColor"               [0.9400 0.9400 0.9400]      col('w')    }; 
+            "FigureColor"               [0.9400 0.9400 0.9400]      col('w')            }; 
 end
 
 % Change settings if required
@@ -50,7 +50,7 @@ if state~=flag
             end
         end
     end
-    state = flag;                                                                       % update current groot state with last call's one 
+    state = flag;                                                                       % update current groot state with last call's one
 end
 
 

@@ -25,16 +25,18 @@ function [ax,fig] = xfig(obj,opts)
 %           ta          [-] tick alignment
 %           tex         [-] latex -> tex rendering *[req. recursive struct traverse]
 %           (reset?)    [-] reset to default XFIG formatting
+%           (mem?)      [-] ignore presence of axes in memory
 %           tikz        [-] tikz-style 2D/3D axes *[req. callback function]
 %           gmod        grootMod required state [default:true]
 %
 %   VERSION
-%   v2.1 / xx.xx.22 / --    axis color [-] / export [-] / tick alignment [-] / tex interpreter [-] /
+%   v2.1 / xx.11.22 / --    axis color [-] / export [-] / tick alignment [-] / tex interpreter [-] /
 %                           rotate3d [-] / export [-] / reset XFIG formatting [-] / clear without 
-%                           resetting formatting [-] / tiledlayout vector obj [-] / vector obj [-]
+%                           resetting formatting [-] / tiledlayout vector obj [-] / vector obj [-] / 
+%                           PolarAxes [+] / code mod: class-based assignment axis fields [+]
 %   v2.0 / 07.11.22 / --    ax=<obj> kwarg replaced by optional obj=<axes/figure/tiledlayout/integer> /
-%                           new calls do not overwrite existing XFIG axis settings / 
-%                           bool inputs for binary switches / performance improvements & code clean-up
+%                           new calls do not overwrite existing XFIG axis settings /  
+%                           bool inputs for binary switches / performance improvements 
 %   v1.3 / 05.11.22 / --    3d plots / nested tiledlayout support, opts applied to leayers=<num> /
 %                           enhanced input handling / c=<0/1> reset axes option / examples
 %   v1.2 / 03.11.22 / --    ax=<axis/figure/tiledlayout> updates or creates axes as necessary
@@ -61,31 +63,53 @@ arguments
 end
 
 % Default settings
-    persistent axf def fn arrbool arrscale arrhold arrgrid
+    persistent axmem def fn arrbool arrscale arrhold arrgrid
     if isempty(def)
-        % Selectable
-        def.s.NextPlot = "add";
-        def.s.Box = "off";
-        def.s.XScale = "lin";
-        def.s.YScale = "lin";
-        def.s.ZScale = "lin";
-        def.s.XGrid = "off";
-        def.s.YGrid = "off";
-        def.s.ZGrid = "off";
-        def.s.XMinorGrid = "off";
-        def.s.YMinorGrid = "off";
-        def.s.ZMinorGrid = "off";
+        % Remembered axes
+        axmem.class = ["c" "p"]; % Supported class fiednames
+        axmem.obj = matlab.graphics.GraphicsPlaceholder;
 
-        % Initial call
-        def.i.Units = 'normalized';
-        def.i.FontSize = 10;
-        def.i.GridAlpha = 0.10;
-        def.i.MinorGridAlpha = 0.05;
-        def.i.MinorGridLineStyle = '-';
+        % Selectable, Cartesian
+        def.s.c.NextPlot = "add";
+        def.s.c.Box = "off";
+        def.s.c.XScale = "lin";
+        def.s.c.YScale = "lin";
+        def.s.c.ZScale = "lin";
+        def.s.c.XGrid = "off";
+        def.s.c.YGrid = "off";
+        def.s.c.ZGrid = "off";
+        def.s.c.XMinorGrid = "off";
+        def.s.c.YMinorGrid = "off";
+        def.s.c.ZMinorGrid = "off";
+
+        % Selectable, Polar
+        def.s.p.NextPlot = "add";
+        def.s.p.Box = "off";
+        def.s.p.RGrid = "on";
+        def.s.p.ThetaGrid = "on";
+        def.s.p.RMinorGrid = "off";
+        def.s.p.ThetaMinorGrid = "off"; 
+
+        % Initial call, Cartesian
+        def.i.c.Units = 'normalized';
+        def.i.c.FontSize = 10;
+        def.i.c.GridAlpha = 0.10;
+        def.i.c.MinorGridAlpha = 0.05;
+        def.i.c.MinorGridLineStyle = '-';
+
+        % Initial call, polar 
+        def.i.p.Units = 'normalized';
+        def.i.p.FontSize = 10;
+        def.i.p.GridAlpha = 0.12;
+        def.i.p.MinorGridAlpha = 0.05;
+        def.i.p.MinorGridLineStyle = '-';
+        def.i.p.TickLabelInterpreter = 'tex';                                                       % temporary, labels do not render with latex
     
         % Struct field names
-        fn.s = string(fieldnames(def.s));
-        fn.i = string(fieldnames(def.i));
+        fn.s.c = string(fieldnames(def.s.c));
+        fn.s.p = string(fieldnames(def.s.p));
+        fn.i.c = string(fieldnames(def.i.c));
+        fn.i.p = string(fieldnames(def.i.p));
 
         % Multi-choice arrays for argument parsing
         arrbool  = ["0","false","off"; "1","true","on"];
@@ -94,7 +118,7 @@ end
         arrgrid  = ["0","false","off"; "1","true","on"; "2","b","all"];
     end
 
-% Assign all selectable variables as <missing>
+% Assign all selectable variables w/o defaults as <missing>
     [gmod,n,c,b,h,x,y,z,xy,xyz,g,gm] = deal(missing);
 
 % Unpack inputs, overwriting non-missing vars, set groot
@@ -110,25 +134,30 @@ end
             case 'double'                                                                           % xfig(6,)
                 fig = gcfLoc(obj);                                                                  % specified target / xfig(n=6,)
             case 'matlab.graphics.axis.Axes'                                                        % xfig(gca,)
-                ax = obj;
-                fig = gcf;          % update to explicitly get parent
+                ax = obj; 
+                fig = gcf;
+            case 'matlab.graphics.axis.PolarAxes'
+                ax = obj; 
+                fig = gcf;
             case 'matlab.ui.Figure'                                                                 % xfig(gcf,)
                 fig = obj;
             case 'matlab.graphics.layout.TiledChartLayout'                                      
                 fig = gcf;
-                ax = getAxisArray(obj,[],'tiled',layers);
+                ax = getAxesArray(obj,[],'tiled',layers);
             otherwise
                 error('xfig: obj must be <axes/figure/tiledlayout/integer/empty>')
         end 
     end
     if ~exist('ax','var')
-        ax = getAxisArray([],fig,'figure',layers); 
+        ax = getAxesArray([],fig,'figure',layers); 
     end
+    ax = cvec(ax(:));                                                                               % Flatten
 
 % Update existing and remebered axis handles
-    axf(~isgraphics(axf)) = [];                                                                     % remove dead axes from axf list
-    maskax = ismember(ax,axf);                                                                      % current call axes that are on axf list
-    axf = [axf; cvec(ax(~maskax))];                                                                 % update axes list
+    axmem.obj(~isgraphics(axmem.obj)) = [];                                                         % handles list
+    maskax = ismember(ax,axmem.obj);                                                                % current call axes that are on list
+    axclass = getAxesClass(ax);                                                                     % class list of current axes
+    axmem.obj = [axmem.obj; ax(~maskax)];                                                           % update axes list
 
 % Axis scales, precedence x/y/z > xy > xyz
     parseMultiChoice(arrscale,x,y,z,xy,xyz)
@@ -162,46 +191,61 @@ end
     parseMultiChoice(arrbool,b,c)
     parseMultiChoice(arrhold,h)
 
-% User-defined options, including <missing>
-    inp.NextPlot = h;
-    inp.Box = b;
-    inp.XScale = xyz(1);
-    inp.YScale = xyz(2);
-    inp.ZScale = xyz(3);
-    inp.XGrid = gv(1);
-    inp.YGrid = gv(2);
-    inp.ZGrid = gv(3);
-    inp.XMinorGrid = gv(4);
-    inp.YMinorGrid = gv(5);
-    inp.ZMinorGrid = gv(6);
+% User-defined options, including <missing>, Cartesian/Polar
+    inp.c.NextPlot = h;
+    inp.c.Box = b;
+    inp.c.XScale = xyz(1);
+    inp.c.YScale = xyz(2);
+    inp.c.ZScale = xyz(3);
+    inp.c.XGrid = gv(1);
+    inp.c.YGrid = gv(2);
+    inp.c.ZGrid = gv(3);
+    inp.c.XMinorGrid = gv(4);
+    inp.c.YMinorGrid = gv(5);
+    inp.c.ZMinorGrid = gv(6);
+
+    inp.p.NextPlot = h;
+    inp.p.Box = b;
+    inp.p.RGrid = gv(1);
+    inp.p.ThetaGrid = gv(2);
+    inp.p.RMinorGrid = gv(4);
+    inp.p.ThetaMinorGrid = gv(5); 
     
 % Fields of property struct from current call
-    maskinp = arrayfun(@(n)~ismissing(inp.(n)),fn.s);
+    for j = 1:numel(axmem.class)
 
-% Always update
-    idx = find(maskinp); 
+        axc = axmem.class(j);
+        maskinp = arrayfun(@(i)~ismissing(inp.(axc).(i)),fn.s.(axc));
 
-    for i = 1:numel(ax)
-        if c=="on" 
-            cla(ax(i),'reset');
-        end 
-        for k = 1:numel(idx) 
-            ax(i).(fn.s(idx(k))) = inp.(fn.s(idx(k)));                                              % inputs available from current call
-        end 
-        ax(i).LooseInset = ax(i).TightInset;                                                        % always refresh
-    end
+        % Always update
+        idx = find(maskinp);  
+        idn = find(axclass==axc);
 
-% Settings only assigned on first call
-    idx = find(~maskinp);
-    idn = find(~maskax | c=="on");                                                                  % reapply formatting if axes were cleared
-
-    for i = 1:numel(idn)
-        for k = 1:numel(fn.i)
-            ax(idn(i)).(fn.i(k)) = def.i.(fn.i(k));                                                 % defaults for e.g. FontSize
+        for i = 1:numel(idn)
+            id = idn(i);
+            if c=="on" 
+                cla(ax(id),'reset');
+            end
+            for k = 1:numel(idx)
+                ax(id).(fn.s.(axc)(idx(k))) = inp.(axc).(fn.s.(axc)(idx(k)));                       % inputs available from current call
+            end 
+            ax(id).LooseInset = ax(id).TightInset;                                                  % always refresh
         end
-        for k = 1:numel(idx)
-            ax(idn(i)).(fn.s(idx(k))) = def.s.(fn.s(idx(k)));                                       % values not in INP structure
+
+        % Settings only assigned on first call
+        idx = find(~maskinp);
+        idn = find((~maskax | c=="on") & axclass==axc);                                             % reapply formatting if axes were cleared
+
+        for i = 1:numel(idn)
+            id = idn(i);
+            for k = 1:numel(fn.i.(axc))
+                ax(id).(fn.i.(axc)(k)) = def.i.(axc).(fn.i.(axc)(k));                               % defaults for e.g. FontSize
+            end
+            for k = 1:numel(idx)
+                ax(id).(fn.s.(axc)(idx(k))) = def.s.(axc).(fn.s.(axc)(idx(k)));                     % values not in INP structure
+            end
         end
+        
     end
 
 
@@ -225,7 +269,7 @@ function parseMultiChoice(arr,varargin)
 
 %  ------------------------------------------------------------------------------------------------
 
-function ax = getAxisArray(ax,fig,type,layers)
+function ax = getAxesArray(ax,fig,type,layers)
 
     switch type
         case 'tiled'
@@ -239,7 +283,7 @@ function ax = getAxisArray(ax,fig,type,layers)
             if isempty(fig.Children)
                 ax = axes(fig);                                                                     % create axes for the figure
             elseif isa(fig.Children,'matlab.graphics.layout.TiledChartLayout') 
-                ax = getAxisArray(fig.Children,[],'tiled',layers);                                  % single recursive call as 'tiled'
+                ax = getAxesArray(fig.Children,[],'tiled',layers);                                  % single recursive call as 'tiled'
             else
                 ax = getAxes(fig,layers);                                                           % get existing axes of nonempty figure
             end
@@ -248,7 +292,23 @@ function ax = getAxisArray(ax,fig,type,layers)
 %  ------------------------------------------------------------------------------------------------
 
 function ax = getAxes(fig,layers)
-    ax = findobj(fig.Children,'type','Axes','-depth',layers);
+
+    ax = [  cvec(findobj(fig.Children,'type','Axes','-depth',layers))
+            cvec(findobj(fig.Children,'type','PolarAxes','-depth',layers))  ];
+
+%  ------------------------------------------------------------------------------------------------
+
+function c = getAxesClass(ax)
+
+    c = string(repmat(missing,size(ax)));
+    for i = 1:numel(ax)
+        switch class(ax(i))
+            case 'matlab.graphics.axis.Axes', c(i) = "c"; % Cartesian
+            case 'matlab.graphics.axis.PolarAxes', c(i) = "p"; % Polar
+            otherwise, error('xfig: only Cartesian and polar axes are supported')
+        end
+    end
+
 
 %  ------------------------------------------------------------------------------------------------
 
@@ -262,10 +322,11 @@ function mask = ismemberLoc(comparr,A)
 
 function fig = gcfLoc(n)
 
-    persistent cf g
-    if isempty(cf), g = groot; cf = g.CurrentFigure;
+    persistent g
+    if isempty(g), g = groot; 
     end
 
+    cf = g.CurrentFigure;
     if isempty(cf) || isempty(n) || cf.Number==n, fig = gcf;                                        % if n/Number are missing/empty, gcf creates a new fig
     else, fig = figure; 
     end
@@ -338,6 +399,28 @@ function fig = gcfLoc(n)
 
     exportgraphics(gcf,'fractal.pdf','contenttype','vector')
     print(gcf,'-dsvg','fractal')
+
+% EXAMPLE 4A, basic polar plot, then place in tiledlayout
+    xfig(polaraxes,gm=1); 
+    polarplot(sin(0:.01:2*pi),cos(0:.01:2*pi),color=col('rc'));
+
+% EXAMPLE 4B, place in tiled layout
+    t = tiledlayout(2,3);
+
+    for i = 1:t(1).GridSize(2)
+        t(i+1) = tiledlayout(t(1),1,1);
+        t(i+1).Layout.Tile = t(1).GridSize(1) + i;
+
+        set(xfig(polaraxes,gm=0),'Parent',t(i+1));
+        polarplot(-1+2.5*i*sin(0:.01:2*pi),cos(2.5*i+(0:.01:2*pi)),color=col('dbc'));
+        polarplot(-1+2.5*(1-.05/i^2)*i*sin(0:.01:2*pi),cos(2.5*(1-.05/i^2)*i+(0:.01:2*pi)),color=col('coolgrey'));
+
+        xfig(nexttile(t(1)),b=0,gm=1); 
+        fplot({@(x)sinc(x),@(x)sinc(.7*x)},[-3*i,3*i]);
+    end
+
+
+
 %}
 %  ------------------------------------------------------------------------------------------------
 

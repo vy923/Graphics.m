@@ -31,7 +31,7 @@ clear all
 grootMod()
 
 % Paths
-locIn   = "C:\Users\vyot466\OneDrive - The University of Auckland\Code\Matlab\Misc projects\meshPlotAPDL\";     % directory
+locIn   = "C:\Users\vyot466\OneDrive - The University of Auckland\Code\Matlab\Graphics\data\meshPlotAPDL\";     % directory
 fileIn  = "flywheel.cdb";                                                   % file name
 
 % Data flags 
@@ -89,7 +89,7 @@ for i = 1:n
     [maskG,sortG] = ismember(G(:,1),t); 
     g = G(maskG,2:end);                     % filter grid data of t
     try
-        Q(6*i-5:6*i,:) = t(grid2quad(g,false));
+        Q(6*i-5:6*i,:) = t(grid2quad(g,false)); % enforceadj setting
         nd = [nd, i];
     catch 
         dg = [dg; i];
@@ -111,22 +111,17 @@ Q = Q(idx,:);
 % -----------------------------------------------
 
 % Complete mesh without internal & defective faces
-fig = figure(1);
-    clf
-    ax = axes('Position', [0 0 1 1]);
+[ax,fig] = xfig(1,b=1,g=1,c=1);
     rotate3d on
-    hold on
-    box on
-    grid off
     axis equal
     warning off
-    showLight = true;
+    showLight = false;
 
 opts.lgt = {'style'         'local'
             'color'         col('w')
             }'; 
 
-opts.p = {  'FaceColor'     col('x11gray')
+opts.p = {  'FaceColor'     col('coolgrey') % x11gray
             'EdgeColor'     'k'
             'LineStyle'     '-'  
             'LineWidth'     0.2
@@ -144,6 +139,10 @@ if showLight
     p.EdgeLighting = 'gouraud';
 end
 
+% export to tikz
+cleanfigure
+matlab2tikz('test.tex','standalone',true,'floatFormat','%.3g') % %.15g
+%print(gcf,'-dsvg','wheel')
 
 % Defective face nodes
 if false

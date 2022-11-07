@@ -340,7 +340,7 @@ function fig = gcfLoc(n)
 
 %  ------------------------------------------------------------------------------------------------
 %{
-% EXAMPLE 1A, no change of properties on uninitialised axes
+% [EXAMPLE 1A], no change of properties on uninitialised axes
     figure(1);
     t = tiledlayout(3,3);
     nexttile(t,5,[2 2]);
@@ -353,18 +353,18 @@ function fig = gcfLoc(n)
     [ax,fig] = xfig(g,b=0)
     xfig(ax,g=2); % add grids
 
-% EXAMPLE 1B, precedence of grid specs, i.e. gm > g
+% [EXAMPLE 1B], precedence of grid specs, i.e. gm > g
     xfig(3);
     e = tiledlayout(3,3);
     [ax,fig] = xfig(e,b=1,g=2,gm='y')
 
-% EXAMPLE 1C: update settings in consecutive calls
+% [EXAMPLE 1C]: update settings in consecutive calls
     xfig(n=4);
     fplot({@(x)exp(x),@(x)exp(.6*x)},[0,15])
     xfig(gcf,g=1,b=1);
     xfig(gca,gm='xy',y=1); legend;
 
-% EXAMPLE 2, tiles, 3d plots, tikz-like axes, non-standard colors
+% [EXAMPLE 2A], tiles, 3d plots, tikz-like axes, non-standard colors
     t = tiledlayout(4,3);
     ax = [arrayfun(@(i)nexttile(t,i),[1:4 5 8 9 12]) nexttile(t,6,[2 2])];
     
@@ -373,10 +373,10 @@ function fig = gcfLoc(n)
     
     scatter3(randi(10,6),randi(10,6),randi(10,6),markeredgecolor=col('atomictangerine'))
     xfig(ax(end),b=0,g=1); 
-    ax(end).View=[140 35]; 
+    ax(end).View=[140 35];
     tikzStyleAxes(gca);
 
-% EXAMPLE 3, fractal tiles, hidden ticks, export to vector formats
+% [EXAMPLE 3], fractal tiles, hidden ticks, export to vector formats
     k = 4; 
     n = 8;
     for i = 1:n
@@ -400,11 +400,11 @@ function fig = gcfLoc(n)
     exportgraphics(gcf,'fractal.pdf','contenttype','vector')
     print(gcf,'-dsvg','fractal')
 
-% EXAMPLE 4A, basic polar plot, then place in tiledlayout
+% [EXAMPLE 4A], basic polar plot, then place in tiledlayout
     xfig(polaraxes,gm=1); 
     polarplot(sin(0:.01:2*pi),cos(0:.01:2*pi),color=col('rc'));
 
-% EXAMPLE 4B, place polar axes in tiled layout
+% [EXAMPLE 4B], place polar axes in tiled layout
     t = tiledlayout(2,3);
 
     for i = 1:t(1).GridSize(2)
@@ -419,15 +419,43 @@ function fig = gcfLoc(n)
         fplot({@(x)sinc(x),@(x)sinc(.7*x)},[-3*i,3*i]);
     end
 
-% EXAMPLE 5, apply xfig settings to a .fig loaded from file
+% [EXAMPLE 5], apply xfig settings to a .fig loaded from file
     grootMod(false)                                         % reset to default 
 
     f = @(x)tanh(x).*sin(x.^2); 
-    figure; fplot({f,@(x)1.5*f(.5*x)},1.0*[-pi,pi]);
-    savefig(gcf); pause(5); close;                          % export figure
+    figure; 
+    fplot({f,@(x)1.5*f(.5*x)},1.0*[-pi,pi]);
+    savefig(gcf); pause(5);                                 % export figure
+    close;                          
 
     xfig; close;                                            % call grootMod, alt. grootMod()
     xfig(openfig('untitled'),g=2);                          % reopen with xfig
+
+% [EXAMPLE 2B], same as 2A, tikz export
+    t = tiledlayout(4,3);
+    ax = [arrayfun(@(i)nexttile(t,i),[1:4 5 8 9 12]) nexttile(t,6,[2 2])];
+    
+    xfig(ax,b=1,g=0);
+    ls = linspace(-1,1,500);
+    for i = 1:8
+        plot(ax(i),1.5*i*ls,sinc(ls*i)); 
+        plot(ax(i),1.5*i*ls,sinc(.7*ls*i));
+        xfig(ax(i),b=0);
+        ax(i).XLabel.String = ['Test $\sum_' sprintf('%d',i) '^n{x_i}$' ];
+        ax(i).YLabel.String = ['Test $Y_\alpha^' sprintf('%d',i) '$'];
+        ax(i).XLimitMethod = 'tight';
+    end
+    
+    scatter3(randi(10,6),randi(10,6),randi(10,6),markeredgecolor=col('atomictangerine'))
+    xfig(ax(end),b=1,g=1);
+    ax(end).View=[140 35];
+    xlabel('$X^2$-axis'); 
+    ylabel('$Y^2$-axis'); 
+    zlabel('$\sqrt{Z^2}$-axis');
+
+    cleanfigure
+    matlab2tikz('test.tex','standalone',true)
+    exportgraphics(gcf,'fractal.pdf','contenttype','vector')
 
 %}
 %  ------------------------------------------------------------------------------------------------

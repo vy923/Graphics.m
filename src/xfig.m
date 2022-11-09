@@ -420,16 +420,16 @@ function fig = gcfLoc(n)
     end
 
 % [EXAMPLE 5], apply xfig settings to a .fig loaded from file
-    grootMod(false)                                         % reset to default 
+    grootMod(false)                                                 % reset to default 
 
     f = @(x)tanh(x).*sin(x.^2); 
     figure; 
     fplot({f,@(x)1.5*f(.5*x)},1.0*[-pi,pi]);
-    savefig(gcf); pause(5);                                 % export figure
+    savefig(gcf); pause(5);                                         % export figure
     close;                          
 
-    xfig; close;                                            % call grootMod, alt. grootMod()
-    xfig(openfig('untitled'),g=2);                          % reopen with xfig
+    xfig; close;                                                    % call grootMod, alt. grootMod()
+    xfig(openfig('untitled'),g=2);                                  % reopen with xfig
 
 % [EXAMPLE 2B], same as 2A, tikz export
     t = tiledlayout(4,3);

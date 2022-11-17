@@ -334,7 +334,8 @@ function fig = gcfLoc(n)
 
     cf = g.CurrentFigure;
     if isempty(cf) || isempty(n) || cf.Number==n, fig = gcf;
-    else, fig = figure; 
+    elseif ~ismissing(n), fig = figure(n);
+    else, fig = figure;
     end
 
 

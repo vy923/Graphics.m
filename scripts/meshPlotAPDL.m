@@ -11,7 +11,7 @@
 %       - Grid and element IDs are pre-sorted
 %
 %   VERSION
-%   v1.2 / xx.11.22 / --    generalisation for different elements, faster face computation
+%   v1.2 / xx.11.22 / --    generalisation for different elements [-], faster face computation [+]
 %   v1.1 / 08.11.22 / --    filtering to keep only visible faces for plotting
 %   v1.0 / 10.02.22 / V.Y.
 %  ------------------------------------------------------------------------------------------------
@@ -80,7 +80,6 @@ F = processFaces(F);                                                         % G
 % Complete mesh without internal & defective faces
 [ax,fig] = xfig(1,b=0,g=0,c=1);
     ax.DataAspectRatio = [1 1 1];
-%    axis equal
     rotate3d on
     showLight = true;
 
@@ -110,7 +109,7 @@ end
 
 %{
 cleanfigure
-matlab2tikz('monopatch.tex','standalone',true,'floatFormat','%.8g') %.15g
+matlab2tikz('monopatch.tex','standalone',true,'floatFormat','%.5g') %.15g
 
 print(gcf,'-dsvg','wheel')
 exportgraphics(gcf,'test.pdf','contenttype','vector')

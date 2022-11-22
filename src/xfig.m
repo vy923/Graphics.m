@@ -34,7 +34,7 @@ function [ax,fig] = xfig(obj,opts)
 %                           rotate3d [-] / export [-] / reset XFIG formatting [-] / clear without 
 %                           resetting formatting [-] / tiledlayout vector obj [-] / vector obj [-] / 
 %                           PolarAxes [+] / code mod: class-based assignment axis fields [+] / bugfix in 
-%                           hierarchical assignments, e.g. minor grid [+]
+%                           hierarchical assignments, e.g. minor grid [+] / bugfix in number assignment v0.2 [+]
 %   v2.0 / 07.11.22 / --    ax=<obj> kwarg replaced by optional obj=<axes/figure/tiledlayout/integer> /
 %                           new calls do not overwrite existing XFIG axis settings /  
 %                           bool inputs for binary switches / performance improvements 
@@ -105,7 +105,7 @@ end
         def.i.p.MinorGridAlpha = 0.05;
         def.i.p.MinorGridLineStyle = '-';
         def.i.p.TickLabelInterpreter = 'tex';                                                       % temporary, labels do not render with latex
-    
+
         % Struct field names
         fn.s.c = string(fieldnames(def.s.c));
         fn.s.p = string(fieldnames(def.s.p));
@@ -333,10 +333,18 @@ function fig = gcfLoc(n)
     end
 
     cf = g.CurrentFigure;
-    if isempty(cf) || isempty(n) || cf.Number==n, fig = gcf;
-    elseif ~ismissing(n), fig = figure(n);
-    else, fig = figure;
+
+    if isempty(cf)
+        if ismissing(n)||isempty(n), fig = gcf;
+        else, fig = figure(n);
+        end
+    else
+        if ismissing(n)||isempty(n), fig = figure;
+        elseif cf.Number==n, fig = gcf;
+        else, fig = figure(n);
+        end    
     end
+
 
 
 %  ------------------------------------------------------------------------------------------------
@@ -460,9 +468,6 @@ function fig = gcfLoc(n)
 
 %}
 %  ------------------------------------------------------------------------------------------------
-
-
-
 
 
 

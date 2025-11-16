@@ -30,9 +30,10 @@ function [ax,fig] = xfig(obj,opts)
 %           gmod        grootMod required state [default:true]
 %
 %   VERSION
-%   v2.1 / xx.11.22 / --    axis color [-] / export [-] / tick alignment [-] / tex interpreter [-] /
+%   v2.1 / xx.xx.25 / --    axis color [-] / export [-] / tick alignment [-] / tex interpreter [-] /
 %                           rotate3d [-] / export [-] / reset XFIG formatting [-] / clear without 
-%                           resetting formatting [-] / tiledlayout vector obj [-] / vector obj [-] / 
+%                           resetting formatting delete(ax.Children) [-] / tiledlayout vector obj [-] / 
+%                           vector obj [-] / skip inset update [-]
 %                           PolarAxes [+] / code mod: class-based assignment axis fields [+] / bugfix in 
 %                           hierarchical assignments, e.g. minor grid [+] / bugfix in number assignment v0.2 [+]
 %   v2.0 / 07.11.22 / --    ax=<obj> kwarg replaced by optional obj=<axes/figure/tiledlayout/integer> /
@@ -61,6 +62,7 @@ arguments
     opts.g {mustBeSubsOrM(opts.g,"xyz",["0","off","false","1","true","on","2","b","all"],0,[1 1 0])}
     opts.gm {mustBeSubsOrM(opts.gm,"xyz",["0","off","false","1","true","on"],0,[1 1 0])}
     opts.layers (1,1) {mustBeNonnegative} = 0
+    opts.ins {mustBeMemberSCI(opts.ins,["0","false","off","1","true","on"])} = "on"
 end
 
 % Default settings
@@ -120,7 +122,7 @@ end
     end
 
 % Assign all selectable variables w/o defaults as <missing>
-    [gmod,n,c,b,h,x,y,z,xy,xyz,g,gm] = deal(missing);
+    [gmod,n,c,b,h,x,y,z,xy,xyz,g,gm,ins] = deal(missing);
 
 % Unpack inputs, overwriting non-missing vars, set groot
     s2vars(opts)
@@ -189,7 +191,7 @@ end
     end
 
 % Box, cla, hold
-    parseMultiChoice(arrbool,b,c)
+    parseMultiChoice(arrbool,b,c,ins)
     parseMultiChoice(arrhold,h)
 
 % User-defined options, including <missing>, Cartesian/Polar
@@ -229,8 +231,10 @@ end
             end
             for k = 1:numel(idx)
                 ax(id).(fn.s.(axc)(idx(k))) = inp.(axc).(fn.s.(axc)(idx(k)));                       % inputs available from current call
-            end 
-            ax(id).LooseInset = ax(id).TightInset;                                                  % always refresh
+            end
+            if ins=="on"
+                ax(id).LooseInset = ax(id).TightInset;                                              % always refresh
+            end
         end
 
         % Settings only assigned on first call
@@ -310,7 +314,6 @@ function c = getAxesClass(ax)
         end
     end
 
-
 %  ------------------------------------------------------------------------------------------------
 
 function mask = ismemberLoc(comparr,A)
@@ -322,6 +325,7 @@ function mask = ismemberLoc(comparr,A)
 %  ------------------------------------------------------------------------------------------------
 
 function y = boolSwap(x,vals) 
+
     y(x)=vals(1); y(~x)=vals(2); y=reshape(y,size(x));
 
 %  ------------------------------------------------------------------------------------------------
@@ -335,11 +339,11 @@ function fig = gcfLoc(n)
     cf = g.CurrentFigure;
 
     if isempty(cf)
-        if ismissing(n)||isempty(n), fig = gcf;
+        if ismissing(n) || isempty(n), fig = gcf;
         else, fig = figure(n);
         end
     else
-        if ismissing(n)||isempty(n), fig = figure;
+        if ismissing(n) || isempty(n), fig = figure;
         elseif cf.Number==n, fig = gcf;
         else, fig = figure(n);
         end    
@@ -420,11 +424,11 @@ function fig = gcfLoc(n)
         t(i+1) = tiledlayout(t(1),1,1);
         t(i+1).Layout.Tile = t(1).GridSize(1) + i;
 
-        set(xfig(polaraxes,gm=0),'Parent',t(i+1));
+        set(xfig(polaraxes,gm=0,ins=1),'Parent',t(i+1));
         polarplot(-1+2.5*i*sin(0:.01:2*pi),cos(2.5*i+(0:.01:2*pi)),color=col('dbc'));
         polarplot(-1+2.5*(1-.05/i^2)*i*sin(0:.01:2*pi),cos(2.5*(1-.05/i^2)*i+(0:.01:2*pi)),color=col('coolgrey'));
 
-        xfig(nexttile(t(1)),b=0,gm=1); 
+        xfig(nexttile(t(1)),b=0,gm=1,ins=1); 
         fplot({@(x)sinc(x),@(x)sinc(.7*x)},[-3*i,3*i]);
     end
 

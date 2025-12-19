@@ -30,12 +30,13 @@ function [ax,fig] = xfig(obj,opts)
 %           gmod        grootMod required state [default:true]
 %
 %   VERSION
-%   v2.1 / xx.xx.25 / --    axis color [-] / export [-] / tick alignment [-] / tex interpreter [-] /
+%   v2.2 / xx.xx.25 / --    axis color [-] / export [-] / tick alignment [-] / tex interpreter [-] /
 %                           rotate3d [-] / export [-] / reset XFIG formatting [-] / clear without 
 %                           resetting formatting delete(ax.Children) [-] / tiledlayout vector obj [-] / 
 %                           vector obj [-] / skip inset update [-]
-%                           PolarAxes [+] / code mod: class-based assignment axis fields [+] / bugfix in 
-%                           hierarchical assignments, e.g. minor grid [+] / bugfix in number assignment v0.2 [+]
+%   v2.1 / 22.11.22 / --    PolarAxes / code mod: class-based assignment axis fields / bugfix in 
+%                           hierarchical assignments, e.g. minor grid / bugfix in number 
+%                           assignment v0.2
 %   v2.0 / 07.11.22 / --    ax=<obj> kwarg replaced by optional obj=<axes/figure/tiledlayout/integer> /
 %                           new calls do not overwrite existing XFIG axis settings /  
 %                           bool inputs for binary switches / performance improvements 
